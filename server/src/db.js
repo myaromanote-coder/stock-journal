@@ -1,18 +1,11 @@
-import Database from 'better-sqlite3';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import { mkdirSync } from 'fs';
+import { createClient } from '@libsql/client';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_PATH = process.env.DB_PATH || join(__dirname, '..', 'data', 'stock-journal.db');
+const db = createClient({
+  url: process.env.TURSO_URL || 'file:local.db',
+  authToken: process.env.TURSO_TOKEN,
+});
 
-mkdirSync(dirname(DB_PATH), { recursive: true });
-
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-db.exec(`
+await db.executeMultiple(`
   CREATE TABLE IF NOT EXISTS holdings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ticker TEXT NOT NULL,

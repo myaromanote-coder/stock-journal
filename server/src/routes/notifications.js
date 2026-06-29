@@ -4,34 +4,31 @@ import { generateMorningReport } from '../services/schedulerService.js';
 
 const router = Router();
 
-router.get('/', (req, res) => {
-  const rows = db.prepare(`
-    SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50
-  `).all();
-  res.json(rows);
+router.get('/', async (req, res) => {
+  const result = await db.execute('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50');
+  res.json(result.rows);
 });
 
-router.get('/unread-count', (req, res) => {
-  const row = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE is_read = 0').get();
-  res.json({ count: row.count });
+router.get('/unread-count', async (req, res) => {
+  const result = await db.execute('SELECT COUNT(*) as count FROM notifications WHERE is_read = 0');
+  res.json({ count: result.rows[0].count });
 });
 
-router.post('/:id/read', (req, res) => {
-  db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(req.params.id);
+router.post('/:id/read', async (req, res) => {
+  await db.execute({ sql: 'UPDATE notifications SET is_read = 1 WHERE id = ?', args: [req.params.id] });
   res.json({ success: true });
 });
 
-router.post('/read-all', (req, res) => {
-  db.prepare('UPDATE notifications SET is_read = 1').run();
+router.post('/read-all', async (req, res) => {
+  await db.execute('UPDATE notifications SET is_read = 1');
   res.json({ success: true });
 });
 
-router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM notifications WHERE id = ?').run(req.params.id);
+router.delete('/:id', async (req, res) => {
+  await db.execute({ sql: 'DELETE FROM notifications WHERE id = ?', args: [req.params.id] });
   res.json({ success: true });
 });
 
-// 테스트용: 즉시 모닝 리포트 생성
 router.post('/generate-report', async (req, res) => {
   try {
     await generateMorningReport();

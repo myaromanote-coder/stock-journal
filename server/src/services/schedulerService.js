@@ -11,8 +11,10 @@ export function startScheduler() {
 }
 
 export async function generateMorningReport() {
-  const holdings = db.prepare('SELECT DISTINCT ticker, market, name FROM holdings').all();
-  const watchlist = db.prepare('SELECT ticker, market, name FROM watchlist').all();
+  const holdingsResult = await db.execute('SELECT DISTINCT ticker, market, name FROM holdings');
+  const watchlistResult = await db.execute('SELECT ticker, market, name FROM watchlist');
+  const holdings = holdingsResult.rows;
+  const watchlist = watchlistResult.rows;
 
   const allStocks = [
     ...holdings.map(h => ({ ...h, type: 'holding' })),
@@ -42,15 +44,15 @@ export async function generateMorningReport() {
   }
 
   const today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
-  db.prepare(`
-    INSERT INTO notifications (type, title, message, data)
-    VALUES (?, ?, ?, ?)
-  `).run(
-    'morning_report',
-    `${today} 모닝 리포트`,
-    `📊 ${today} 시장 현황\n\n${lines.join('\n')}`,
-    JSON.stringify(reportData),
-  );
+  await db.execute({
+    sql: 'INSERT INTO notifications (type, title, message, data) VALUES (?, ?, ?, ?)',
+    args: [
+      'morning_report',
+      `${today} 모닝 리포트`,
+      `📊 ${today} 시장 현황\n\n${lines.join('\n')}`,
+      JSON.stringify(reportData),
+    ],
+  });
 
   console.log(`[Scheduler] 모닝 리포트 생성 완료 (${allStocks.length}종목)`);
 }

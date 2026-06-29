@@ -3,23 +3,23 @@ import db from '../db.js';
 
 const router = Router();
 
-router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT * FROM watchlist ORDER BY created_at DESC').all();
-  res.json(rows);
+router.get('/', async (req, res) => {
+  const result = await db.execute('SELECT * FROM watchlist ORDER BY created_at DESC');
+  res.json(result.rows);
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { ticker, name, market, target_price, memo } = req.body;
   if (!ticker || !name || !market) {
     return res.status(400).json({ error: '필수 항목이 누락됐습니다.' });
   }
   try {
-    const result = db.prepare(`
-      INSERT INTO watchlist (ticker, name, market, target_price, memo)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(ticker.toUpperCase(), name, market, target_price || null, memo || null);
-    const row = db.prepare('SELECT * FROM watchlist WHERE id = ?').get(result.lastInsertRowid);
-    res.status(201).json(row);
+    const result = await db.execute({
+      sql: 'INSERT INTO watchlist (ticker, name, market, target_price, memo) VALUES (?, ?, ?, ?, ?)',
+      args: [ticker.toUpperCase(), name, market, target_price || null, memo || null],
+    });
+    const row = await db.execute({ sql: 'SELECT * FROM watchlist WHERE id = ?', args: [result.lastInsertRowid] });
+    res.status(201).json(row.rows[0]);
   } catch (e) {
     if (e.message.includes('UNIQUE')) {
       return res.status(409).json({ error: '이미 관심종목에 추가된 주식입니다.' });
@@ -28,19 +28,20 @@ router.post('/', (req, res) => {
   }
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { target_price, memo } = req.body;
-  const result = db.prepare(`
-    UPDATE watchlist SET target_price=?, memo=? WHERE id=?
-  `).run(target_price || null, memo || null, req.params.id);
-  if (result.changes === 0) return res.status(404).json({ error: '항목을 찾을 수 없습니다.' });
-  const row = db.prepare('SELECT * FROM watchlist WHERE id = ?').get(req.params.id);
-  res.json(row);
+  const result = await db.execute({
+    sql: 'UPDATE watchlist SET target_price=?, memo=? WHERE id=?',
+    args: [target_price || null, memo || null, req.params.id],
+  });
+  if (result.rowsAffected === 0) return res.status(404).json({ error: '항목을 찾을 수 없습니다.' });
+  const row = await db.execute({ sql: 'SELECT * FROM watchlist WHERE id = ?', args: [req.params.id] });
+  res.json(row.rows[0]);
 });
 
-router.delete('/:id', (req, res) => {
-  const result = db.prepare('DELETE FROM watchlist WHERE id = ?').run(req.params.id);
-  if (result.changes === 0) return res.status(404).json({ error: '항목을 찾을 수 없습니다.' });
+router.delete('/:id', async (req, res) => {
+  const result = await db.execute({ sql: 'DELETE FROM watchlist WHERE id = ?', args: [req.params.id] });
+  if (result.rowsAffected === 0) return res.status(404).json({ error: '항목을 찾을 수 없습니다.' });
   res.json({ success: true });
 });
 
