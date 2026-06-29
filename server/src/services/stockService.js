@@ -2,6 +2,7 @@
 // 한국 주식: 네이버 모바일 증권 API
 
 const PRIVATE_TICKERS = new Set(['SPACEX', 'SPACE_X']);
+const FUND_TICKERS = new Set(['APGR40', 'YKVANILLA']);
 const TD_API_KEY = process.env.TWELVE_DATA_API_KEY || '';
 const NAVER_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
@@ -71,6 +72,14 @@ export async function getQuote(ticker, market) {
       ticker, market, symbol: ticker, name: ticker,
       price: null, previousClose: null, change: null, changePercent: null,
       currency: 'USD', error: '비상장 주식 - 실시간 조회 불가',
+    };
+  }
+
+  if (FUND_TICKERS.has(ticker.toUpperCase())) {
+    return {
+      ticker, market, symbol: ticker, name: ticker,
+      price: null, previousClose: null, change: null, changePercent: null,
+      currency: 'KRW', error: '펀드 상품 - 실시간 시세 미제공',
     };
   }
 
