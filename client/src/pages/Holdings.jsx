@@ -218,21 +218,23 @@ export default function Holdings() {
                     setSelectedStock(isOpen ? null : { ticker: group.ticker, market: group.market, name: group.name });
                   }}
                 >
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <span className="font-semibold text-white">{group.name}</span>
-                      <span className="text-xs text-gray-500 ml-2">{group.ticker}</span>
-                      <span className={`text-xs ml-2 px-1.5 py-0.5 rounded ${
-                        group.market === 'US' ? 'bg-blue-900/50 text-blue-300' : 'bg-orange-900/50 text-orange-300'
-                      }`}>
-                        {group.market === 'US' ? 'US' : group.market === 'KS' ? 'KOSPI' : 'KOSDAQ'}
-                      </span>
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-white text-sm truncate">{group.name}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-xs text-gray-500">{group.ticker}</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${
+                          group.market === 'US' ? 'bg-blue-900/50 text-blue-300' : 'bg-orange-900/50 text-orange-300'
+                        }`}>
+                          {group.market === 'US' ? 'US' : group.market === 'KS' ? 'KOSPI' : 'KOSDAQ'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                     <div className="text-right">
-                      <p className="text-xs text-gray-500">{group.items.length}건 · 총 매수금액</p>
-                      <p className="text-white font-medium">{formatPrice(total, group.market)}</p>
+                      <p className="text-xs text-gray-500 whitespace-nowrap">{group.items.length}건 · 총 매수금액</p>
+                      <p className="text-white font-medium text-sm whitespace-nowrap">{formatPrice(total, group.market)}</p>
                     </div>
                     <ChevronDown size={16} className={`text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                   </div>
