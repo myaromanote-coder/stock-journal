@@ -100,7 +100,7 @@ export default function Watchlist() {
             <StockSearchInput onSelect={handleSearchSelect} placeholder="종목명 또는 티커 검색..." />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-gray-400 mb-1">티커 <span className="text-red-400">*</span></label>
               <input

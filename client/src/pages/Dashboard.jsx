@@ -9,19 +9,28 @@ function formatPrice(price, currency) {
   return `$${price.toFixed(2)}`;
 }
 
-function PriceChange({ value, currency }) {
-  if (value == null) return <span className="text-gray-500">-</span>;
-  const up = value >= 0;
-  const sign = up ? '+' : '';
-  const fmt = currency === 'KRW'
-    ? `${sign}${Math.round(value).toLocaleString('ko-KR')}원`
-    : `${sign}${value.toFixed(2)}%`;
-  return <span className={up ? 'text-red-400' : 'text-blue-400'}>{fmt}</span>;
+function marketLabel(market) {
+  if (market === 'KS') return 'KOSPI';
+  if (market === 'KQ') return 'KOSDAQ';
+  return 'US';
 }
 
-function QuoteCard({ q, onClick, selected }) {
+function getAvgHolding(holdings, ticker, market) {
+  const items = (holdings || []).filter(h => h.ticker === ticker && h.market === market);
+  if (!items.length) return null;
+  const totalCost = items.reduce((s, h) => s + h.purchase_price * h.quantity, 0);
+  const totalQty = items.reduce((s, h) => s + h.quantity, 0);
+  return totalQty > 0 ? { avgPrice: totalCost / totalQty, totalQty } : null;
+}
+
+function QuoteCard({ q, avgHolding, onClick, selected }) {
   const up = (q.changePercent ?? 0) >= 0;
   const hasPrice = q.price != null;
+
+  const gainPercent = avgHolding && hasPrice && avgHolding.avgPrice
+    ? ((q.price - avgHolding.avgPrice) / avgHolding.avgPrice * 100)
+    : null;
+
   return (
     <div
       onClick={() => onClick(q)}
@@ -33,24 +42,37 @@ function QuoteCard({ q, onClick, selected }) {
         <div className="flex-1 min-w-0 pr-2">
           <p className="font-semibold text-white text-sm truncate">{q.name}</p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {q.ticker} · {q.market === 'US' ? 'US' : q.market === 'KS' ? 'KOSPI' : 'KOSDAQ'}
+            {q.ticker} · {marketLabel(q.market)}
           </p>
         </div>
         {hasPrice && (
-          <span className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center ${up ? 'bg-red-900/40' : 'bg-blue-900/40'}`}>
-            {up ? <TrendingUp size={14} className="text-red-400" /> : <TrendingDown size={14} className="text-blue-400" />}
+          <span className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center ${
+            up ? 'bg-red-900/40' : 'bg-blue-900/40'
+          }`}>
+            {up
+              ? <TrendingUp size={14} className="text-red-400" />
+              : <TrendingDown size={14} className="text-blue-400" />
+            }
           </span>
         )}
       </div>
+
       <div className="mt-3">
         <p className="text-xl font-bold text-white">{formatPrice(q.price, q.currency)}</p>
         {hasPrice ? (
-          <div className="flex items-center gap-2 mt-1 text-sm">
-            <span className={(q.changePercent ?? 0) >= 0 ? 'text-red-400' : 'text-blue-400'}>
-              {(q.changePercent ?? 0) >= 0 ? '+' : ''}{(q.changePercent ?? 0).toFixed(2)}%
+          <div className="flex items-center flex-wrap gap-1.5 mt-1.5">
+            <span className={`text-sm font-medium ${up ? 'text-red-400' : 'text-blue-400'}`}>
+              {up ? '+' : ''}{(q.changePercent ?? 0).toFixed(2)}%
             </span>
-            <span className="text-gray-600">|</span>
-            <PriceChange value={q.change} currency={q.currency} />
+            {gainPercent != null && (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                gainPercent >= 0
+                  ? 'bg-red-900/40 text-red-400'
+                  : 'bg-blue-900/40 text-blue-400'
+              }`}>
+                매입比 {gainPercent >= 0 ? '+' : ''}{gainPercent.toFixed(1)}%
+              </span>
+            )}
           </div>
         ) : (
           q.error && <p className="text-xs text-gray-500 mt-1">{q.error}</p>
@@ -115,7 +137,7 @@ export default function Dashboard() {
           className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 text-gray-300 rounded-lg text-sm hover:bg-gray-700 transition-colors disabled:opacity-50"
         >
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          새로고침
+          <span className="hidden sm:inline">새로고침</span>
         </button>
       </div>
 
@@ -129,14 +151,16 @@ export default function Dashboard() {
           {loading && !rawQuotes && (
             <div className="text-center py-8 text-gray-500 text-sm">시세 조회 중...</div>
           )}
+
           {holdingQuotes.length > 0 && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wide">보유 종목</h3>
+              <h3 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">보유 종목</h3>
               <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {holdingQuotes.map(q => (
                   <QuoteCard
                     key={`${q.ticker}-${q.market}`}
                     q={q}
+                    avgHolding={getAvgHolding(holdings, q.ticker, q.market)}
                     onClick={setSelectedStock}
                     selected={selectedStock?.ticker === q.ticker && selectedStock?.market === q.market}
                   />
@@ -144,14 +168,16 @@ export default function Dashboard() {
               </div>
             </section>
           )}
+
           {watchQuotes.length > 0 && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wide">관심 종목</h3>
+              <h3 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">관심 종목</h3>
               <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {watchQuotes.map(q => (
                   <QuoteCard
                     key={`${q.ticker}-${q.market}`}
                     q={q}
+                    avgHolding={null}
                     onClick={setSelectedStock}
                     selected={selectedStock?.ticker === q.ticker && selectedStock?.market === q.market}
                   />
@@ -159,6 +185,7 @@ export default function Dashboard() {
               </div>
             </section>
           )}
+
           {selectedStock && (
             <StockChart
               ticker={selectedStock.ticker}
