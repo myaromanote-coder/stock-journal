@@ -1,0 +1,29 @@
+name: 모닝 리포트 (오전 9:30 KST)
+
+on:
+  schedule:
+    - cron: '30 0 * * 1-5'  # 0:30 UTC = 9:30 KST (월~금)
+  workflow_dispatch:         # 수동 실행 가능
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 서버 의존성 설치
+        run: cd server && npm ci
+
+      - name: 모닝 리포트 생성
+        run: |
+          node --input-type=module <<'EOF'
+          import { generateMorningReport } from './server/src/services/schedulerService.js';
+          await generateMorningReport();
+          console.log('모닝 리포트 완료');
+          EOF
+        env:
+          TURSO_URL: ${{ secrets.TURSO_URL }}
+          TURSO_TOKEN: ${{ secrets.TURSO_TOKEN }}
