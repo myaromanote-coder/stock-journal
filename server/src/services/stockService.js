@@ -1,7 +1,7 @@
 // 미국 주식: Twelve Data API
 // 한국 주식: 네이버 모바일 증권 API
 
-const PRIVATE_TICKERS = new Set(['SPACEX', 'SPACE_X']);
+const PRIVATE_TICKERS = new Set([]);
 const FUND_TICKERS = new Set(['APGR40', 'YKVANILLA']);
 const TD_API_KEY = process.env.TWELVE_DATA_API_KEY || '';
 const NAVER_HEADERS = {
